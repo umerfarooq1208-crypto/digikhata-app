@@ -19,7 +19,8 @@ export async function POST(req: Request) {
       email,
       password: hashedPassword,
       securityQuestion,
-      securityAnswer: securityAnswer.toLowerCase().trim()
+      securityAnswer: securityAnswer.toLowerCase().trim(),
+      role: email === 'umerfarooq1208@gmail.com' ? 'admin' : 'user'
     });
 
     return NextResponse.json({ message: 'User created successfully' }, { status: 201 });

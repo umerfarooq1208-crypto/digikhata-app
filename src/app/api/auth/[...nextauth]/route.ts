@@ -25,23 +25,25 @@ export const authOptions = {
         if (!isValid) {
           throw new Error('Incorrect password');
         }
-        return { id: user._id, name: user.name, email: user.email };
+        return { id: user._id, name: user.name, email: user.email, role: user.role };
       }
     })
   ],
   callbacks: {
-    async session({ session, token }: any) {
-      if (token) {
+    async jwt({ token, user }: { token: any, user: any }) {
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+      }
+      return token;
+    },
+    async session({ session, token }: { session: any, token: any }) {
+      if (session.user) {
         session.user.id = token.id;
+        session.user.role = token.role;
       }
       return session;
     },
-    async jwt({ token, user }: any) {
-      if (user) {
-        token.id = user.id;
-      }
-      return token;
-    }
   },
   pages: {
     signIn: '/login',
