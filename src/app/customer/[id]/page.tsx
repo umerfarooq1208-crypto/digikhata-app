@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Phone, Download, Plus, Minus } from 'lucide-react';
+import { ArrowLeft, Phone, Download, Plus, Minus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
 
@@ -29,6 +29,7 @@ export default function CustomerDetails() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showModal, setShowModal] = useState<{ show: boolean, type: 'GAVE' | 'GOT' | null }>({ show: false, type: null });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
 
@@ -91,6 +92,13 @@ export default function CustomerDetails() {
     doc.save(`${customer?.name}_ledger.pdf`);
   };
 
+  const handleDeleteCustomer = async () => {
+    const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      router.push('/dashboard');
+    }
+  };
+
   if (!customer) return <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>;
 
   return (
@@ -104,9 +112,14 @@ export default function CustomerDetails() {
             <h1 style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{customer.name}</h1>
             <p style={{ fontSize: '0.8rem', opacity: 0.9 }}>{customer.phone || 'No phone'}</p>
           </div>
-          <button onClick={downloadPDF} style={{ background: 'none', color: 'white' }}>
-            <Download size={20} />
-          </button>
+          <div style={{ display: 'flex', gap: '15px' }}>
+            <button onClick={downloadPDF} style={{ background: 'none', color: 'white' }}>
+              <Download size={20} />
+            </button>
+            <button onClick={() => setShowDeleteConfirm(true)} style={{ background: 'none', color: 'white' }}>
+              <Trash2 size={20} />
+            </button>
+          </div>
         </div>
 
         <div style={{ background: 'white', color: 'var(--text-main)', margin: '20px 0 0', padding: '15px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -191,6 +204,33 @@ export default function CustomerDetails() {
                 Save Transaction
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showDeleteConfirm && (
+        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
+            <Trash2 size={48} color="var(--primary)" style={{ marginBottom: '15px' }} />
+            <h2 style={{ marginBottom: '10px' }}>Delete Customer?</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>
+              This will permanently delete <b>{customer.name}</b> and all their transaction history. This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                onClick={() => setShowDeleteConfirm(false)}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'white' }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleDeleteCustomer}
+                className="bg-red"
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', color: 'white', fontWeight: 'bold' }}
+              >
+                Yes, Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

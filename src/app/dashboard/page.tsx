@@ -2,8 +2,8 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { Plus, Search, LogOut, Download, UserPlus } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Plus, Search, LogOut, Download, UserPlus, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
 import Link from 'next/link';
 
 interface Customer {
@@ -52,8 +52,15 @@ export default function Dashboard() {
     }
   };
 
-  const totalToGet = customers.reduce((acc, c) => acc + (c.balance > 0 ? c.balance : 0), 0);
-  const totalToGive = customers.reduce((acc, c) => acc + (c.balance < 0 ? Math.abs(c.balance) : 0), 0);
+  const { totalToGet, totalToGive, netBalance } = useMemo(() => {
+    const get = customers.reduce((acc, c) => acc + (c.balance > 0 ? c.balance : 0), 0);
+    const give = customers.reduce((acc, c) => acc + (c.balance < 0 ? Math.abs(c.balance) : 0), 0);
+    return {
+      totalToGet: get,
+      totalToGive: give,
+      netBalance: get - give
+    };
+  }, [customers]);
 
   const filteredCustomers = customers.filter(c => 
     c.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -77,13 +84,37 @@ export default function Dashboard() {
 
         <div className="summary-cards">
           <div className="summary-card">
-            <p className="label">You will give</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '5px' }}>
+              <TrendingDown size={14} color="#ff8a80" />
+              <p className="label">You Give</p>
+            </div>
             <p className="value">Rs {totalToGive.toLocaleString()}</p>
           </div>
           <div className="summary-card">
-            <p className="label">You will get</p>
-            <p className="value" style={{ color: '#81c784' }}>Rs {totalToGet.toLocaleString()}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '5px' }}>
+              <TrendingUp size={14} color="#81c784" />
+              <p className="label">You Get</p>
+            </div>
+            <p className="value">Rs {totalToGet.toLocaleString()}</p>
           </div>
+        </div>
+
+        <div style={{ 
+          background: 'rgba(255, 255, 255, 0.2)', 
+          marginTop: '15px', 
+          padding: '15px', 
+          borderRadius: '12px', 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          backdropFilter: 'blur(5px)',
+          border: '1px solid rgba(255, 255, 255, 0.3)'
+        }}>
+          <div>
+            <p style={{ fontSize: '0.8rem', opacity: 0.9 }}>Total Net Balance (Hisab)</p>
+            <p style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>Rs {netBalance.toLocaleString()}</p>
+          </div>
+          <Wallet size={24} opacity={0.8} />
         </div>
       </header>
 
