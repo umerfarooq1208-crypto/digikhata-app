@@ -26,6 +26,8 @@ export default function CustomerDetails() {
   const { id } = useParams();
   const { status } = useSession();
   const router = useRouter();
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showModal, setShowModal] = useState<{ show: boolean, type: 'GAVE' | 'GOT' | null }>({ show: false, type: null });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEditCustomer, setShowEditCustomer] = useState(false);
