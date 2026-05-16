@@ -3,11 +3,11 @@ import dbConnect from '@/lib/db';
 import Sale from '@/models/Sale';
 import Product from '@/models/Product';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 
 export async function GET() {
   await dbConnect();
-  const session = await getServerSession(authOptions);
+  const session = ((await getServerSession(authOptions)) as any) as any;
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const sales = await Sale.find({ userId: session.user.id }).populate('productId').sort({ date: -1 });
@@ -16,7 +16,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   await dbConnect();
-  const session = await getServerSession(authOptions);
+  const session = ((await getServerSession(authOptions)) as any) as any;
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { productId, quantity } = await req.json();
@@ -43,3 +43,4 @@ export async function POST(req: Request) {
 
   return NextResponse.json(sale);
 }
+

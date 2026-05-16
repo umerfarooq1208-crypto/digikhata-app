@@ -3,11 +3,11 @@ import dbConnect from '@/lib/db';
 import Transaction from '@/models/Transaction';
 import Customer from '@/models/Customer';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 
 export async function GET(req: Request) {
   await dbConnect();
-  const session = await getServerSession(authOptions);
+  const session = ((await getServerSession(authOptions)) as any) as any;
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   await dbConnect();
-  const session = await getServerSession(authOptions);
+  const session = ((await getServerSession(authOptions)) as any) as any;
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { customerId, amount, description, type } = await req.json();
@@ -49,3 +49,4 @@ export async function POST(req: Request) {
 
   return NextResponse.json(transaction);
 }
+

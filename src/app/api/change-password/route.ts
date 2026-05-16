@@ -3,12 +3,12 @@ import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
     await dbConnect();
-    const session = await getServerSession(authOptions);
+    const session = ((await getServerSession(authOptions)) as any) as any;
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { oldPassword, newPassword } = await req.json();
@@ -28,3 +28,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

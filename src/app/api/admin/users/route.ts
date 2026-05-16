@@ -6,13 +6,13 @@ import Transaction from '@/models/Transaction';
 import Product from '@/models/Product';
 import Sale from '@/models/Sale';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 
 export async function GET() {
   await dbConnect();
-  const session = await getServerSession(authOptions);
+  const session = ((await getServerSession(authOptions)) as any) as any as any;
   
-  if (!session || session.user.role !== 'admin') {
+  if (!session || session.user?.role !== 'admin') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -34,9 +34,9 @@ export async function GET() {
 
 export async function DELETE(req: Request) {
   await dbConnect();
-  const session = await getServerSession(authOptions);
+  const session = ((await getServerSession(authOptions)) as any) as any as any;
   
-  if (!session || session.user.role !== 'admin') {
+  if (!session || session.user?.role !== 'admin') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -53,3 +53,4 @@ export async function DELETE(req: Request) {
 
   return NextResponse.json({ message: 'User and all associated data deleted' });
 }
+

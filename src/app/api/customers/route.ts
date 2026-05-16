@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Customer from '@/models/Customer';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 
 export async function GET() {
   await dbConnect();
-  const session = await getServerSession(authOptions);
+  const session = ((await getServerSession(authOptions)) as any) as any;
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const customers = await Customer.find({ userId: session.user.id }).sort({ updatedAt: -1 });
@@ -15,7 +15,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   await dbConnect();
-  const session = await getServerSession(authOptions);
+  const session = ((await getServerSession(authOptions)) as any) as any;
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { name, phone } = await req.json();
@@ -27,3 +27,4 @@ export async function POST(req: Request) {
   });
   return NextResponse.json(customer);
 }
+
