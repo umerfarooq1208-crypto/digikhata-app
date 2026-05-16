@@ -56,6 +56,7 @@ export default function LoginPage() {
         >
           Login
         </button>
+        <Link href="/forgot-password" style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--primary)' }}>Forgot password?</Link>
       </form>
 
       <p style={{ textAlign: 'center', fontSize: '0.9rem' }}>

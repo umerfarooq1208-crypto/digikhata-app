@@ -3,7 +3,7 @@
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { Plus, Search, LogOut, Download, UserPlus, Wallet, TrendingUp, TrendingDown, Box, ShoppingCart, History } from 'lucide-react';
+import { Plus, Search, LogOut, Download, UserPlus, Wallet, TrendingUp, TrendingDown, Box, ShoppingCart, History, Settings, Lock } from 'lucide-react';
 import Link from 'next/link';
 
 interface Product {
@@ -43,9 +43,14 @@ export default function Dashboard() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [showSaleModal, setShowSaleModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
+
+  // Password Change
+  const [oldPass, setOldPass] = useState('');
+  const [newPass, setNewPass] = useState('');
 
   // Stock Form
   const [pName, setPName] = useState('');
@@ -120,6 +125,23 @@ export default function Dashboard() {
     }
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await fetch('/api/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oldPassword: oldPass, newPassword: newPass }),
+    });
+    if (res.ok) {
+      alert('Password changed successfully!');
+      setShowSettingsModal(false);
+      setOldPass(''); setNewPass('');
+    } else {
+      const data = await res.json();
+      alert(data.error || 'Failed to change password');
+    }
+  };
+
   const { totalToGet, totalToGive, netBalance } = useMemo(() => {
     const get = customers.reduce((acc, c) => acc + (c.balance > 0 ? c.balance : 0), 0);
     const give = customers.reduce((acc, c) => acc + (c.balance < 0 ? Math.abs(c.balance) : 0), 0);
@@ -157,9 +179,14 @@ export default function Dashboard() {
             <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>DigiKhata</h1>
             <p style={{ fontSize: '0.8rem', opacity: 0.8 }}>Hi, {session?.user?.name}</p>
           </div>
-          <button onClick={() => signOut()} style={{ background: 'none', color: 'white' }}>
-            <LogOut size={20} />
-          </button>
+          <div style={{ display: 'flex', gap: '15px' }}>
+            <button onClick={() => setShowSettingsModal(true)} style={{ background: 'none', color: 'white' }}>
+              <Settings size={20} />
+            </button>
+            <button onClick={() => signOut()} style={{ background: 'none', color: 'white' }}>
+              <LogOut size={20} />
+            </button>
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '20px', marginTop: '20px', borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
@@ -383,6 +410,47 @@ export default function Dashboard() {
                 Log Sale & Profit
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showSettingsModal && (
+        <div className="modal-overlay" onClick={() => setShowSettingsModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+              <Lock size={20} color="var(--primary)" />
+              <h2 style={{ margin: 0 }}>Security Settings</h2>
+            </div>
+            
+            <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Change Account Password</p>
+              <input 
+                type="password" 
+                placeholder="Current Password" 
+                value={oldPass} 
+                onChange={e => setOldPass(e.target.value)} 
+                required 
+              />
+              <input 
+                type="password" 
+                placeholder="New Password" 
+                value={newPass} 
+                onChange={e => setNewPass(e.target.value)} 
+                required 
+              />
+              <button type="submit" className="bg-red" style={{ padding: '12px', color: 'white', borderRadius: '8px', fontWeight: 'bold' }}>
+                Update Password
+              </button>
+            </form>
+
+            <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid var(--border)' }} />
+            
+            <button 
+              onClick={() => signOut()}
+              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--primary)', color: 'var(--primary)', background: 'none', fontWeight: 'bold' }}
+            >
+              Logout Account
+            </button>
           </div>
         </div>
       )}

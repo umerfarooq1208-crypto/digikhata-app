@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs';
 export async function POST(req: Request) {
   try {
     await dbConnect();
-    const { name, email, password } = await req.json();
+    const { name, email, password, securityQuestion, securityAnswer } = await req.json();
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -18,6 +18,8 @@ export async function POST(req: Request) {
       name,
       email,
       password: hashedPassword,
+      securityQuestion,
+      securityAnswer: securityAnswer.toLowerCase().trim()
     });
 
     return NextResponse.json({ message: 'User created successfully' }, { status: 201 });

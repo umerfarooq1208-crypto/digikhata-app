@@ -8,6 +8,8 @@ export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [securityQuestion, setSecurityQuestion] = useState('');
+  const [securityAnswer, setSecurityAnswer] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -19,7 +21,7 @@ export default function RegisterPage() {
 
     const res = await fetch('/api/register', {
       method: 'POST',
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, securityQuestion, securityAnswer }),
       headers: { 'Content-Type': 'application/json' },
     });
 
@@ -62,6 +64,28 @@ export default function RegisterPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+        />
+
+        <div style={{ marginTop: '10px' }}>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '5px' }}>Security Question (for recovery)</p>
+          <select 
+            value={securityQuestion} 
+            onChange={(e) => setSecurityQuestion(e.target.value)} 
+            required
+            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'white' }}
+          >
+            <option value="">Select a question</option>
+            <option value="What is your pet's name?">What is your pet's name?</option>
+            <option value="What city were you born in?">What city were you born in?</option>
+            <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+            <option value="What was your first car?">What was your first car?</option>
+          </select>
+        </div>
+        <input 
+          placeholder="Security Answer" 
+          value={securityAnswer} 
+          onChange={(e) => setSecurityAnswer(e.target.value)} 
+          required 
         />
         <button 
           type="submit"
