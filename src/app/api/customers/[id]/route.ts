@@ -20,3 +20,18 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 
   return NextResponse.json({ message: 'Customer and all records deleted successfully' });
 }
+
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
+  await dbConnect();
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { name, phone } = await req.json();
+  const customer = await Customer.findOneAndUpdate(
+    { _id: params.id, userId: session.user.id },
+    { name, phone },
+    { new: true }
+  );
+
+  return NextResponse.json(customer);
+}

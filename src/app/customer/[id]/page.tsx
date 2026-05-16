@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Phone, Download, Plus, Minus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Phone, Download, Plus, Minus, Trash2, Edit2, Check, X } from 'lucide-react';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
 
@@ -26,12 +26,16 @@ export default function CustomerDetails() {
   const { id } = useParams();
   const { status } = useSession();
   const router = useRouter();
-  const [customer, setCustomer] = useState<Customer | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showModal, setShowModal] = useState<{ show: boolean, type: 'GAVE' | 'GOT' | null }>({ show: false, type: null });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showEditCustomer, setShowEditCustomer] = useState(false);
+  const [editTran, setEditTran] = useState<Transaction | null>(null);
+
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
+
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
@@ -99,6 +103,45 @@ export default function CustomerDetails() {
     }
   };
 
+  const handleUpdateCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await fetch(`/api/customers/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: editName, phone: editPhone }),
+    });
+    if (res.ok) {
+      setShowEditCustomer(false);
+      fetchCustomer();
+    }
+  };
+
+  const handleUpdateTransaction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTran) return;
+    const res = await fetch(`/api/transactions/${editTran._id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: Number(amount), description }),
+    });
+    if (res.ok) {
+      setEditTran(null);
+      setAmount('');
+      setDescription('');
+      fetchCustomer();
+      fetchTransactions();
+    }
+  };
+
+  const handleDeleteTransaction = async (tranId: string) => {
+    if (!confirm('Are you sure you want to delete this entry?')) return;
+    const res = await fetch(`/api/transactions/${tranId}`, { method: 'DELETE' });
+    if (res.ok) {
+      fetchCustomer();
+      fetchTransactions();
+    }
+  };
+
   if (!customer) return <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>;
 
   return (
@@ -108,8 +151,10 @@ export default function CustomerDetails() {
           <Link href="/dashboard" style={{ color: 'white' }}>
             <ArrowLeft size={24} />
           </Link>
-          <div style={{ flex: 1 }}>
-            <h1 style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{customer.name}</h1>
+          <div style={{ flex: 1 }} onClick={() => { setEditName(customer.name); setEditPhone(customer.phone); setShowEditCustomer(true); }}>
+            <h1 style={{ fontSize: '1.2rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {customer.name} <Edit2 size={14} opacity={0.7} />
+            </h1>
             <p style={{ fontSize: '0.8rem', opacity: 0.9 }}>{customer.phone || 'No phone'}</p>
           </div>
           <div style={{ display: 'flex', gap: '15px' }}>
@@ -145,10 +190,16 @@ export default function CustomerDetails() {
         </div>
 
         {transactions.map((t) => (
-          <div key={t._id} style={{ display: 'flex', justifyContent: 'space-between', padding: '15px 20px', borderBottom: '1px solid var(--border)' }}>
-            <div>
+          <div key={t._id} className="list-item" style={{ borderBottom: '1px solid var(--border)', cursor: 'default' }}>
+            <div style={{ flex: 1 }}>
               <p style={{ fontSize: '0.85rem', fontWeight: '500' }}>{new Date(t.date).toLocaleDateString()} {new Date(t.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t.description || 'No note'}</p>
+              <button 
+                onClick={() => { setEditTran(t); setAmount(t.amount.toString()); setDescription(t.description); }}
+                style={{ fontSize: '0.7rem', color: 'var(--primary)', background: 'none', padding: '5px 0', marginTop: '5px', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <Edit2 size={10} /> Edit Entry
+              </button>
             </div>
             <div style={{ display: 'flex', gap: '20px', width: '180px', justifyContent: 'flex-end', alignItems: 'center' }}>
               <p style={{ color: 'var(--primary)', fontWeight: 'bold', width: '80px', textAlign: 'right' }}>
@@ -231,6 +282,35 @@ export default function CustomerDetails() {
                 Yes, Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showEditCustomer && (
+        <div className="modal-overlay" onClick={() => setShowEditCustomer(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h2 style={{ marginBottom: '20px' }}>Edit Customer</h2>
+            <form onSubmit={handleUpdateCustomer} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Name" required />
+              <input value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="Phone" />
+              <button type="submit" className="bg-red" style={{ padding: '12px', color: 'white', borderRadius: '8px', fontWeight: 'bold' }}>Update Profile</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editTran && (
+        <div className="modal-overlay" onClick={() => setEditTran(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h2 style={{ marginBottom: '20px' }}>Edit Entry</h2>
+            <form onSubmit={handleUpdateTransaction} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Amount" required />
+              <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Note" />
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="button" onClick={() => handleDeleteTransaction(editTran._id)} style={{ flex: 1, padding: '12px', borderRadius: '8px', background: '#ffebee', color: 'var(--primary)', fontWeight: 'bold' }}>Delete</button>
+                <button type="submit" className="bg-red" style={{ flex: 1, padding: '12px', color: 'white', borderRadius: '8px', fontWeight: 'bold' }}>Save Changes</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
