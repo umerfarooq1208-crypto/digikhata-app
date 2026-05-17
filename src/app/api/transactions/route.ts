@@ -28,15 +28,17 @@ export async function POST(req: Request) {
   const session = ((await getServerSession(authOptions)) as any) as any;
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { customerId, amount, description, type } = await req.json();
+  const { customerId, businessId, amount, description, type, date } = await req.json();
+  if (!businessId) return NextResponse.json({ error: 'Business ID required' }, { status: 400 });
 
   const transaction = await Transaction.create({
     customerId,
+    businessId,
     userId: session.user.id,
     amount,
     description,
     type,
-    date: new Date()
+    date: date ? new Date(date) : new Date()
   });
 
   // Update customer balance

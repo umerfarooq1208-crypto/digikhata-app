@@ -9,6 +9,7 @@ const UserSchema = new Schema({
   role: { type: String, default: 'user', enum: ['user', 'admin'] },
   resetOTP: { type: String },
   resetOTPExpires: { type: Date },
+  activeBusinessId: { type: Schema.Types.ObjectId, ref: 'Business' },
 }, { timestamps: true });
 
 const User = models.User || model('User', UserSchema);

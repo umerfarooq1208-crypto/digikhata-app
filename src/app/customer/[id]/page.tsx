@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Phone, Download, Plus, Minus, Trash2, Edit2, Check, X } from 'lucide-react';
+import { ArrowLeft, Phone, Download, Plus, Minus, Trash2, Edit2 } from 'lucide-react';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
 
@@ -20,6 +20,11 @@ interface Customer {
   name: string;
   phone: string;
   balance: number;
+  businessId?: {
+    _id: string;
+    name: string;
+    currency: string;
+  };
 }
 
 export default function CustomerDetails() {
@@ -35,6 +40,7 @@ export default function CustomerDetails() {
 
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
+  const [customDate, setCustomDate] = useState('');
 
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
@@ -48,10 +54,9 @@ export default function CustomerDetails() {
   }, [status, id]);
 
   const fetchCustomer = async () => {
-    const res = await fetch('/api/customers');
+    const res = await fetch(`/api/customers/${id}`);
     const data = await res.json();
-    const current = data.find((c: Customer) => c._id === id);
-    setCustomer(current);
+    setCustomer(data);
   };
 
   const fetchTransactions = async () => {
@@ -62,34 +67,40 @@ export default function CustomerDetails() {
 
   const handleAddTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!customer) return;
     const res = await fetch('/api/transactions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         customerId: id, 
+        businessId: customer.businessId?._id || customer.businessId,
         amount: Number(amount), 
         description, 
-        type: showModal.type 
+        type: showModal.type,
+        date: customDate || undefined
       }),
     });
     if (res.ok) {
       setShowModal({ show: false, type: null });
       setAmount('');
       setDescription('');
+      setCustomDate('');
       fetchCustomer();
       fetchTransactions();
     }
   };
 
+  const currency = customer?.businessId?.currency || 'Rs';
+
   const downloadPDF = () => {
     const doc = new jsPDF();
     doc.text(`Ledger Report: ${customer?.name}`, 10, 10);
-    doc.text(`Balance: Rs ${customer?.balance}`, 10, 20);
+    doc.text(`Balance: ${currency} ${customer?.balance}`, 10, 20);
     
     let y = 30;
-    transactions.forEach((t, i) => {
+    transactions.forEach((t) => {
       const date = new Date(t.date).toLocaleDateString();
-      const line = `${date} - ${t.type}: Rs ${t.amount} (${t.description || 'No notes'})`;
+      const line = `${date} - ${t.type}: ${currency} ${t.amount} (${t.description || 'No notes'})`;
       doc.text(line, 10, y);
       y += 10;
       if (y > 280) { doc.addPage(); y = 10; }
@@ -124,12 +135,13 @@ export default function CustomerDetails() {
     const res = await fetch(`/api/transactions/${editTran._id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: Number(amount), description }),
+      body: JSON.stringify({ amount: Number(amount), description, date: customDate || undefined }),
     });
     if (res.ok) {
       setEditTran(null);
       setAmount('');
       setDescription('');
+      setCustomDate('');
       fetchCustomer();
       fetchTransactions();
     }
@@ -173,7 +185,7 @@ export default function CustomerDetails() {
           <div>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Net Balance</p>
             <p style={{ fontSize: '1.2rem', fontWeight: 'bold', color: customer.balance >= 0 ? 'var(--secondary)' : 'var(--primary)' }}>
-              Rs {Math.abs(customer.balance).toLocaleString()}
+              {currency} {Math.abs(customer.balance).toLocaleString()}
             </p>
           </div>
           <p style={{ fontSize: '0.8rem', fontWeight: '500' }}>
@@ -194,10 +206,20 @@ export default function CustomerDetails() {
         {transactions.map((t) => (
           <div key={t._id} className="list-item" style={{ borderBottom: '1px solid var(--border)', cursor: 'default' }}>
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: '0.85rem', fontWeight: '500' }}>{new Date(t.date).toLocaleDateString()} {new Date(t.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+              <p style={{ fontSize: '0.85rem', fontWeight: '500' }}>
+                {new Date(t.date).toLocaleDateString()} {new Date(t.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t.description || 'No note'}</p>
               <button 
-                onClick={() => { setEditTran(t); setAmount(t.amount.toString()); setDescription(t.description); }}
+                onClick={() => { 
+                  setEditTran(t); 
+                  setAmount(t.amount.toString()); 
+                  setDescription(t.description);
+                  // Format date to YYYY-MM-DDTHH:MM for datetime-local input
+                  const localDate = new Date(t.date);
+                  const formattedDate = new Date(localDate.getTime() - localDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                  setCustomDate(formattedDate);
+                }}
                 style={{ fontSize: '0.7rem', color: 'var(--primary)', background: 'none', padding: '5px 0', marginTop: '5px', display: 'flex', alignItems: 'center', gap: '4px' }}
               >
                 <Edit2 size={10} /> Edit Entry
@@ -205,10 +227,10 @@ export default function CustomerDetails() {
             </div>
             <div style={{ display: 'flex', gap: '20px', width: '180px', justifyContent: 'flex-end', alignItems: 'center' }}>
               <p style={{ color: 'var(--primary)', fontWeight: 'bold', width: '80px', textAlign: 'right' }}>
-                {t.type === 'GAVE' ? `Rs ${t.amount.toLocaleString()}` : ''}
+                {t.type === 'GAVE' ? `${currency} ${t.amount.toLocaleString()}` : ''}
               </p>
               <p style={{ color: 'var(--secondary)', fontWeight: 'bold', width: '80px', textAlign: 'right' }}>
-                {t.type === 'GOT' ? `Rs ${t.amount.toLocaleString()}` : ''}
+                {t.type === 'GOT' ? `${currency} ${t.amount.toLocaleString()}` : ''}
               </p>
             </div>
           </div>
@@ -233,7 +255,7 @@ export default function CustomerDetails() {
       </div>
 
       {showModal.show && (
-        <div className="modal-overlay" onClick={() => setShowModal({ show: false, type: null })}>
+        <div className="modal-overlay" onClick={() => { setShowModal({ show: false, type: null }); setCustomDate(''); }}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <h2 style={{ marginBottom: '20px', color: showModal.type === 'GAVE' ? 'var(--primary)' : 'var(--secondary)' }}>
               {showModal.type === 'GAVE' ? 'You Gave' : 'You Got'}
@@ -241,7 +263,7 @@ export default function CustomerDetails() {
             <form onSubmit={handleAddTransaction} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <input 
                 type="number"
-                placeholder="Amount (Rs)" 
+                placeholder={`Amount (${currency})`} 
                 value={amount} 
                 onChange={e => setAmount(e.target.value)} 
                 required 
@@ -253,6 +275,15 @@ export default function CustomerDetails() {
                 value={description} 
                 onChange={e => setDescription(e.target.value)} 
               />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Entry Date & Time (Optional)</label>
+                <input 
+                  type="datetime-local" 
+                  value={customDate} 
+                  onChange={e => setCustomDate(e.target.value)} 
+                  style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--border)' }}
+                />
+              </div>
               <button type="submit" className={showModal.type === 'GAVE' ? 'bg-red' : 'bg-green'} style={{ padding: '12px', color: 'white', borderRadius: '8px', fontWeight: 'bold' }}>
                 Save Transaction
               </button>
@@ -302,12 +333,21 @@ export default function CustomerDetails() {
       )}
 
       {editTran && (
-        <div className="modal-overlay" onClick={() => setEditTran(null)}>
+        <div className="modal-overlay" onClick={() => { setEditTran(null); setCustomDate(''); }}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <h2 style={{ marginBottom: '20px' }}>Edit Entry</h2>
             <form onSubmit={handleUpdateTransaction} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Amount" required />
               <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Note" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Entry Date & Time (Optional)</label>
+                <input 
+                  type="datetime-local" 
+                  value={customDate} 
+                  onChange={e => setCustomDate(e.target.value)} 
+                  style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--border)' }}
+                />
+              </div>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button type="button" onClick={() => handleDeleteTransaction(editTran._id)} style={{ flex: 1, padding: '12px', borderRadius: '8px', background: '#ffebee', color: 'var(--primary)', fontWeight: 'bold' }}>Delete</button>
                 <button type="submit" className="bg-red" style={{ flex: 1, padding: '12px', color: 'white', borderRadius: '8px', fontWeight: 'bold' }}>Save Changes</button>

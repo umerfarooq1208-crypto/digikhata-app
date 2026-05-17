@@ -4,6 +4,7 @@ const CustomerSchema = new Schema({
   name: { type: String, required: true },
   phone: { type: String },
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  businessId: { type: Schema.Types.ObjectId, ref: 'Business' },
   balance: { type: Number, default: 0 }, // Positive = You will get, Negative = You will give
 }, { timestamps: true });
 

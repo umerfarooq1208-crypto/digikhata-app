@@ -5,6 +5,18 @@ import Transaction from '@/models/Transaction';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  await dbConnect();
+  const session = (await getServerSession(authOptions)) as any;
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { id } = await params;
+  const customer = await Customer.findOne({ _id: id, userId: session.user.id }).populate('businessId');
+  if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
+
+  return NextResponse.json(customer);
+}
+
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   await dbConnect();
   const session = (await getServerSession(authOptions)) as any;

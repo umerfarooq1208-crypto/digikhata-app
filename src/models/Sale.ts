@@ -7,6 +7,7 @@ const SaleSchema = new Schema({
   totalRevenue: { type: Number, required: true },
   date: { type: Date, default: Date.now },
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  businessId: { type: Schema.Types.ObjectId, ref: 'Business' },
 }, { timestamps: true });
 
 const Sale = models.Sale || model('Sale', SaleSchema);
